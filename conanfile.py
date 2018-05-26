@@ -20,8 +20,8 @@ class GLibConan(ConanFile):
     source_subfolder = "source_subfolder"
 
     def configure(self):
-        if self.settings.os == 'Windows' and self.settings.compiler == "Visual Studio":
-            raise Exception("GNOME glib is not supported by Visual Studio")
+        if self.settings.os != 'Linux':
+            raise Exception("GNOME glib is only supported on Linux for now.")
         del self.settings.compiler.libcxx
 
     def requirements(self):
