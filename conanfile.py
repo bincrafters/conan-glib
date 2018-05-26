@@ -19,11 +19,9 @@ class GLibConan(ConanFile):
     default_options = "shared=False", "fPIC=True", "with_pcre=False"
     source_subfolder = "source_subfolder"
 
-    def config_options(self):
-        if self.settings.os == 'Windows':
-            del self.options.fPIC
-
     def configure(self):
+        if self.settings.os == 'Windows' and self.settings.compiler == "Visual Studio":
+            raise Exception("GNOME glib is not supported by Visual Studio")
         del self.settings.compiler.libcxx
 
     def requirements(self):
