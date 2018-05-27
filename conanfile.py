@@ -18,6 +18,7 @@ class GLibConan(ConanFile):
     options = {"shared": [True, False], "fPIC": [True, False], "with_pcre": [True, False]}
     default_options = "shared=False", "fPIC=True", "with_pcre=False"
     source_subfolder = "source_subfolder"
+    autotools = None
 
     def configure(self):
         if self.settings.os != 'Linux':
@@ -41,24 +42,31 @@ class GLibConan(ConanFile):
         for file_name in ['README', 'INSTALL']:
             open(os.path.join(self.source_subfolder, file_name), 'w+')
 
+    def _configure_autotools(self):
+        if not self.autotools:
+            configure_args = ['--disable-man', '--disable-doc', '--disable-libmount']
+            if not self.options.with_pcre:
+                configure_args.append('--without-pcre')
+            if not self.options.shared:
+                configure_args.append('--enable-static')
+                configure_args.append('--disable-shared')
+            with tools.chdir(self.source_subfolder):
+                self.autotools = AutoToolsBuildEnvironment(self)
+                self.autotools.fpic = self.options.fPIC
+                self.run("autoreconf --force --install --verbose")
+                self.autotools.configure(args=configure_args)
+        return self.autotools
+
     def build(self):
-        # TODO (uilian): Solve libmount in future
-        configure_args = ['--disable-man', '--disable-doc', '--disable-libmount']
-        if not self.options.with_pcre:
-            configure_args.append('--without-pcre')
-        if not self.options.shared:
-            configure_args.append('--enable-static')
-            configure_args.append('--disable-shared')
+        autotools = self._configure_autotools()
         with tools.chdir(self.source_subfolder):
-            autotools = AutoToolsBuildEnvironment(self)
-            autotools.fpic = self.options.fPIC
-            self.run("autoreconf --force --install --verbose")
-            autotools.configure(args=configure_args)
             autotools.make()
-            autotools.make(["install"])
 
     def package(self):
         self.copy(pattern="COPYING", dst="licenses", src=self.source_subfolder)
+        autotools = self._configure_autotools()
+        with tools.chdir(self.source_subfolder):
+            autotools.make(["install"])
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
