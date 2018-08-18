@@ -7,7 +7,7 @@ import os
 
 class GLibConan(ConanFile):
     name = "glib"
-    version = "2.57.1"
+    version = "2.56.1"
     description = "GLib provides the core application building blocks for libraries and applications written in C"
     url = "https://github.com/bincrafters/conan-glib"
     homepage = "https://github.com/GNOME/glib"
@@ -17,6 +17,7 @@ class GLibConan(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False], "fPIC": [True, False], "with_pcre": [True, False]}
     default_options = "shared=False", "fPIC=True", "with_pcre=False"
+    requires = "zlib/1.2.11@conan/stable"
     source_subfolder = "source_subfolder"
     autotools = None
 
