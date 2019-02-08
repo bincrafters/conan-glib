@@ -46,8 +46,11 @@ class GLibConan(ConanFile):
 
     def _configure_meson(self):
         meson = Meson(self)
+        defs = dict()
+        if tools.is_apple_os(self.settings.os):
+            defs["iconv"] = "native"  # https://gitlab.gnome.org/GNOME/glib/issues/1557
         meson.configure(source_folder=self._source_subfolder,
-                        build_folder=self._build_subfolder)
+                        build_folder=self._build_subfolder, defs=defs)
         return meson
 
     def build(self):
