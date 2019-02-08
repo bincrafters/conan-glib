@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from conans import ConanFile, AutoToolsBuildEnvironment, tools
+from conans import ConanFile, tools, Meson
 import os
 
 
@@ -17,13 +17,19 @@ class GLibConan(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False], "fPIC": [True, False], "with_pcre": [True, False]}
     default_options = "shared=False", "fPIC=True", "with_pcre=False"
-    source_subfolder = "source_subfolder"
+    _source_subfolder = "source_subfolder"
+    _build_subfolder = 'build_subfolder'
     autotools = None
+    short_paths = True
+    generators = "pkg_config"
+    requires = "zlib/1.2.11@conan/stable", "libffi/3.2.1@bincrafters/stable"
 
     def configure(self):
-        if self.settings.os != 'Linux':
-            raise Exception("GNOME glib is only supported on Linux for now.")
         del self.settings.compiler.libcxx
+
+    def config_options(self):
+        if self.settings.os == "Windows":
+            del self.options.fPIC
 
     def requirements(self):
         if self.options.with_pcre:
@@ -32,41 +38,28 @@ class GLibConan(ConanFile):
     def source(self):
         tools.get("{0}/archive/{1}.tar.gz".format(self.homepage, self.version))
         extracted_dir = self.name + "-" + self.version
-        os.rename(extracted_dir, self.source_subfolder)
-        self._create_extra_files()
+        os.rename(extracted_dir, self._source_subfolder)
 
-    def _create_extra_files(self):
-        with open(os.path.join(self.source_subfolder, 'gtk-doc.make'), 'w+') as fd:
-            fd.write('EXTRA_DIST =\n')
-            fd.write('CLEANFILES =\n')
-        for file_name in ['README', 'INSTALL']:
-            open(os.path.join(self.source_subfolder, file_name), 'w+')
+    def build_requirements(self):
+        if not tools.which("meson"):
+            self.build_requires("meson_installer/0.49.0@bincrafters/stable")
 
-    def _configure_autotools(self):
-        if not self.autotools:
-            configure_args = ['--disable-man', '--disable-doc', '--disable-libmount']
-            if not self.options.with_pcre:
-                configure_args.append('--without-pcre')
-            if not self.options.shared:
-                configure_args.append('--enable-static')
-                configure_args.append('--disable-shared')
-            with tools.chdir(self.source_subfolder):
-                self.autotools = AutoToolsBuildEnvironment(self)
-                self.autotools.fpic = self.options.fPIC
-                self.run("autoreconf --force --install --verbose")
-                self.autotools.configure(args=configure_args)
-        return self.autotools
+    def _configure_meson(self):
+        meson = Meson(self)
+        meson.configure(source_folder=self._source_subfolder,
+                        build_folder=self._build_subfolder)
+        return meson
 
     def build(self):
-        autotools = self._configure_autotools()
-        with tools.chdir(self.source_subfolder):
-            autotools.make()
+        with tools.environment_append({"PKG_CONFIG_PATH": [self.source_folder]}):
+            meson = self._configure_meson()
+            meson.build()
 
     def package(self):
-        self.copy(pattern="COPYING", dst="licenses", src=self.source_subfolder)
-        autotools = self._configure_autotools()
-        with tools.chdir(self.source_subfolder):
-            autotools.make(["install"])
+        self.copy(pattern="COPYING", dst="licenses", src=self._source_subfolder)
+        with tools.environment_append({"PKG_CONFIG_PATH": [self.source_folder]}):
+            meson = self._configure_meson()
+            meson.install()
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
