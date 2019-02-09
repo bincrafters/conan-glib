@@ -3,6 +3,7 @@
 
 from conans import ConanFile, tools, Meson
 import os
+import shutil
 
 
 class GLibConan(ConanFile):
@@ -34,6 +35,8 @@ class GLibConan(ConanFile):
     def requirements(self):
         if self.options.with_pcre:
             self.requires.add("pcre/8.41@bincraftres/stable")
+        #if self.settings.os == "Linux":
+        #    self.requires.add("libmount/2.33.1@bincrafters/stable")
 
     def source(self):
         tools.get("{0}/archive/{1}.tar.gz".format(self.homepage, self.version))
@@ -49,11 +52,17 @@ class GLibConan(ConanFile):
         defs = dict()
         if tools.is_apple_os(self.settings.os):
             defs["iconv"] = "native"  # https://gitlab.gnome.org/GNOME/glib/issues/1557
+        elif self.settings.os == "Linux":
+            defs["selinux"] = "false"
+            defs["libmount"] = "false"
+            defs["libdir"] = "lib"
         meson.configure(source_folder=self._source_subfolder,
                         build_folder=self._build_subfolder, defs=defs)
         return meson
 
     def build(self):
+        #if self.settings.os == "Linux":
+        #    shutil.move("libmount.pc", "mount.pc")
         with tools.environment_append({"PKG_CONFIG_PATH": [self.source_folder]}):
             meson = self._configure_meson()
             meson.build()
