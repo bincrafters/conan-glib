@@ -25,7 +25,7 @@ class GLibConan(ConanFile):
     default_options = {"shared": False,
                        "fPIC": True,
                        "with_pcre": True,
-                       "with_elf": False,
+                       "with_elf": True,
                        "with_mount": True,
                        "with_selinux": True}
     _source_subfolder = "source_subfolder"
