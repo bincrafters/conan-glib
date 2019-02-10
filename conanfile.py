@@ -16,8 +16,18 @@ class GLibConan(ConanFile):
     license = "LGPL-2.1"
     exports = ["LICENSE.md"]
     settings = "os", "arch", "compiler", "build_type"
-    options = {"shared": [True, False], "fPIC": [True, False], "with_pcre": [True, False]}
-    default_options = "shared=False", "fPIC=True", "with_pcre=False"
+    options = {"shared": [True, False],
+               "fPIC": [True, False],
+               "with_pcre": [True, False],
+               "with_elf": [True, False],
+               "with_selinux": [True, False],
+               "with_mount": [True, False]}
+    default_options = {"shared": False,
+                       "fPIC": True,
+                       "with_pcre": True,
+                       "with_elf": False,
+                       "with_mount": True,
+                       "with_selinux": True}
     _source_subfolder = "source_subfolder"
     _build_subfolder = 'build_subfolder'
     autotools = None
@@ -31,12 +41,20 @@ class GLibConan(ConanFile):
     def config_options(self):
         if self.settings.os == "Windows":
             del self.options.fPIC
+        if self.settings.os != "Linux":
+            del self.options.with_mount
+            del self.options.with_selinux
 
     def requirements(self):
         if self.options.with_pcre:
-            self.requires.add("pcre/8.41@bincraftres/stable")
+            self.requires.add("pcre/8.41@bincrafters/stable")
+        if self.options.with_elf:
+            self.requires.add("libelf/0.8.13@bincrafters/stable")
         if self.settings.os == "Linux":
-            self.requires.add("libmount/2.33.1@bincrafters/stable")
+            if self.options.with_mount:
+                self.requires.add("libmount/2.33.1@bincrafters/stable")
+            if self.options.with_selinux:
+                self.requires.add("libselinux/2.8@bincrafters/stable")
 
     def source(self):
         tools.get("{0}/archive/{1}.tar.gz".format(self.homepage, self.version))
@@ -55,8 +73,8 @@ class GLibConan(ConanFile):
         if tools.is_apple_os(self.settings.os):
             defs["iconv"] = "native"  # https://gitlab.gnome.org/GNOME/glib/issues/1557
         elif self.settings.os == "Linux":
-            defs["selinux"] = "false"
-#defs["libmount"] = "false"
+            defs["selinux"] = self.options.with_selinux
+            defs["libmount"] = self.options.with_mount
             defs["libdir"] = "lib"
         if str(self.settings.compiler) in ["gcc", "clang"]:
             if self.settings.arch == "x86":
@@ -76,6 +94,8 @@ class GLibConan(ConanFile):
     def build(self):
         if self.settings.os == "Linux":
             shutil.move("libmount.pc", "mount.pc")
+        if self.options.with_pcre:
+            shutil.move("pcre.pc", "libpcre.pc")
         with tools.environment_append({"PKG_CONFIG_PATH": [self.source_folder]}):
             meson = self._configure_meson()
             meson.build()
