@@ -56,6 +56,17 @@ class GLibConan(ConanFile):
             defs["selinux"] = "false"
 #defs["libmount"] = "false"
             defs["libdir"] = "lib"
+        if str(self.settings.compiler) in ["gcc", "clang"]:
+            if self.settings.arch == "x86":
+                defs["c_args"] = "-m32"
+                defs["cpp_args"] = "-m32"
+                defs["c_link_args"] = "-m32"
+                defs["cpp_link_args"] = "-m32"
+            elif self.settings.arch == "x86_64":
+                defs["c_args"] = "-m64"
+                defs["cpp_args"] = "-m64"
+                defs["c_link_args"] = "-m64"
+                defs["cpp_link_args"] = "-m64"
         meson.configure(source_folder=self._source_subfolder,
                         build_folder=self._build_subfolder, defs=defs)
         return meson
