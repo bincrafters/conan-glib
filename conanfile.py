@@ -92,7 +92,7 @@ class GLibConan(ConanFile):
         return meson
 
     def build(self):
-        if self.settings.os == "Linux":
+        if self.options.with_mount:
             shutil.move("libmount.pc", "mount.pc")
         if self.options.with_pcre:
             shutil.move("pcre.pc", "libpcre.pc")
