@@ -8,7 +8,7 @@ import shutil
 
 class GLibConan(ConanFile):
     name = "glib"
-    version = "2.58.3"
+    version = "2.60.3"
     description = "GLib provides the core application building blocks for libraries and applications written in C"
     url = "https://github.com/bincrafters/conan-glib"
     homepage = "https://github.com/GNOME/glib"
