@@ -4,6 +4,7 @@
 from conans import ConanFile, tools, Meson
 import os
 import shutil
+import glob
 
 
 class GLibConan(ConanFile):
@@ -34,6 +35,7 @@ class GLibConan(ConanFile):
     short_paths = True
     generators = "pkg_config"
     requires = "zlib/1.2.11@conan/stable", "libffi/3.2.1@bincrafters/stable"
+    exports_sources = ["patches/*.patch"]
 
     def configure(self):
         del self.settings.compiler.libcxx
@@ -91,7 +93,13 @@ class GLibConan(ConanFile):
                         build_folder=self._build_subfolder, defs=defs)
         return meson
 
+    def _apply_patches(self):
+        for filename in sorted(glob.glob("patches/*.patch")):
+            self.output.info('applying patch "%s"' % filename)
+            tools.patch(base_path=self._source_subfolder, patch_file=filename)
+
     def build(self):
+        self._apply_patches()
         if self.settings.os == "Linux":
             shutil.move("libmount.pc", "mount.pc")
         if self.options.with_pcre:
