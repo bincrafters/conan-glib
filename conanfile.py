@@ -87,6 +87,13 @@ class GLibConan(ConanFile):
                 defs["cpp_args"] = "-m64"
                 defs["c_link_args"] = "-m64"
                 defs["cpp_link_args"] = "-m64"
+        elif self.settings.compiler == "Visual Studio":
+            if self.settings.arch == "x86":
+                defs["c_link_args"] = "-MACHINE:X86"
+                defs["cpp_link_args"] = "-MACHINE:X86"
+            elif self.settings.arch == "x86_64":
+                defs["c_link_args"] = "-MACHINE:X64"
+                defs["cpp_link_args"] = "-MACHINE:X64"
         meson.configure(source_folder=self._source_subfolder,
                         build_folder=self._build_subfolder, defs=defs)
         return meson
