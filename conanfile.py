@@ -123,7 +123,7 @@ class GLibConan(ConanFile):
         self.env_info.PATH.append(os.path.join(self.package_folder, "bin"))
         if self.settings.os == "Macos":
             self.cpp_info.libs.append("iconv")
-            frameworks = ['Foundation']
+            frameworks = ['Foundation', 'CoreServices']
             for framework in frameworks:
                 self.cpp_info.exelinkflags.append("-framework %s" % framework)
             self.cpp_info.sharedlinkflags = self.cpp_info.exelinkflags
