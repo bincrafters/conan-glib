@@ -73,7 +73,7 @@ class GLibConan(ConanFile):
         if tools.is_apple_os(self.settings.os):
             defs["iconv"] = "native"  # https://gitlab.gnome.org/GNOME/glib/issues/1557
         elif self.settings.os == "Linux":
-            defs["selinux"] = self.options.with_selinux
+            defs["selinux"] = "enabled" if self.options.with_selinux else "disabled"
             defs["libmount"] = self.options.with_mount
             defs["libdir"] = "lib"
         if str(self.settings.compiler) in ["gcc", "clang"]:
