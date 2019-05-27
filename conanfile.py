@@ -107,6 +107,11 @@ class GLibConan(ConanFile):
             shutil.move("libmount.pc", "mount.pc")
         if self.options.with_pcre:
             shutil.move("pcre.pc", "libpcre.pc")
+        for filename in [os.path.join(self._source_subfolder, "meson.build"),
+                         os.path.join(self._source_subfolder, "glib", "meson.build"),
+                         os.path.join(self._source_subfolder, "gobject", "meson.build"),
+                         os.path.join(self._source_subfolder, "gio", "meson.build")]:
+            tools.replace_in_file(filename, "subdir('tests')", "#subdir('tests')")
         with tools.environment_append({"PKG_CONFIG_PATH": [self.source_folder]}):
             meson = self._configure_meson()
             meson.build()
@@ -126,7 +131,7 @@ class GLibConan(ConanFile):
         self.env_info.PATH.append(os.path.join(self.package_folder, "bin"))
         if self.settings.os == "Macos":
             self.cpp_info.libs.append("iconv")
-            frameworks = ['Foundation', 'CoreServices']
+            frameworks = ['Foundation', 'CoreServices', 'CoreFoundation']
             for framework in frameworks:
                 self.cpp_info.exelinkflags.append("-framework %s" % framework)
             self.cpp_info.sharedlinkflags = self.cpp_info.exelinkflags
