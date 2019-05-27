@@ -89,6 +89,9 @@ class GLibConan(ConanFile):
                 defs["cpp_args"] = "-m64"
                 defs["c_link_args"] = "-m64"
                 defs["cpp_link_args"] = "-m64"
+        elif self.settings.compiler == "Visual Studio":
+            defs["c_args"] = "-DG_INTL_STATIC_COMPILATION=1"
+            defs["cpp_args"] = "-DG_INTL_STATIC_COMPILATION=1"
         meson.configure(source_folder=self._source_subfolder,
                         build_folder=self._build_subfolder, defs=defs)
         return meson
