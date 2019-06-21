@@ -123,9 +123,11 @@ class GLibConan(ConanFile):
             meson.install()
 
     def package_info(self):
-        self.cpp_info.libs = tools.collect_libs(self)
+        self.cpp_info.libs = ["gio-2.0", "gmodule-2.0", "gobject-2.0", "gthread-2.0", "glib-2.0"]
         if self.settings.os == "Linux":
             self.cpp_info.libs.append("pthread")
+        if self.settings.os != "Linux":
+            self.cpp_info.libs.append("intl")
         self.cpp_info.includedirs.append(os.path.join('include', 'glib-2.0'))
         self.cpp_info.includedirs.append(os.path.join('lib', 'glib-2.0', 'include'))
         self.env_info.PATH.append(os.path.join(self.package_folder, "bin"))
