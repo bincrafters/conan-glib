@@ -103,7 +103,7 @@ class GLibConan(ConanFile):
 
     def build(self):
         self._apply_patches()
-        if self.settings.os == "Linux":
+        if self.settings.os == "Linux" and self.options.with_mount:
             shutil.move("libmount.pc", "mount.pc")
         if self.options.with_pcre:
             shutil.move("pcre.pc", "libpcre.pc")
