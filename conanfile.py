@@ -98,11 +98,20 @@ class GLibConan(ConanFile):
             meson = self._configure_meson()
             meson.build()
 
+    def _fix_library_names(self):
+        if self.settings.compiler == "Visual Studio":
+            with tools.chdir(os.path.join(self.package_folder, "lib")):
+                for filename_old in glob.glob("*.a"):
+                    filename_new = filename_old[3:-2] + ".lib"
+                    self.output.info("rename %s into %s" % (filename_old, filename_new))
+                    shutil.move(filename_old, filename_new)
+
     def package(self):
         self.copy(pattern="COPYING", dst="licenses", src=self._source_subfolder)
         with tools.environment_append({"PKG_CONFIG_PATH": [self.source_folder]}):
             meson = self._configure_meson()
             meson.install()
+            self._fix_library_names()
 
     def package_info(self):
         self.cpp_info.libs = ["gio-2.0", "gmodule-2.0", "gobject-2.0", "gthread-2.0", "glib-2.0"]
