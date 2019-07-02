@@ -74,24 +74,6 @@ class GLibConan(ConanFile):
         defs = dict()
         if tools.is_apple_os(self.settings.os):
             defs["iconv"] = "native"  # https://gitlab.gnome.org/GNOME/glib/issues/1557
-        elif self.settings.os == "Linux":
-            defs["selinux"] = self.options.with_selinux
-            defs["libmount"] = self.options.with_mount
-            defs["libdir"] = "lib"
-        if str(self.settings.compiler) in ["gcc", "clang"]:
-            if self.settings.arch == "x86":
-                defs["c_args"] = "-m32"
-                defs["cpp_args"] = "-m32"
-                defs["c_link_args"] = "-m32"
-                defs["cpp_link_args"] = "-m32"
-            elif self.settings.arch == "x86_64":
-                defs["c_args"] = "-m64"
-                defs["cpp_args"] = "-m64"
-                defs["c_link_args"] = "-m64"
-                defs["cpp_link_args"] = "-m64"
-        elif self.settings.compiler == "Visual Studio":
-            defs["c_args"] = "-DG_INTL_STATIC_COMPILATION=1"
-            defs["cpp_args"] = "-DG_INTL_STATIC_COMPILATION=1"
         meson.configure(source_folder=self._source_subfolder,
                         build_folder=self._build_subfolder, defs=defs)
         return meson
