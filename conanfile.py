@@ -117,6 +117,8 @@ class GLibConan(ConanFile):
         self.cpp_info.libs = ["gio-2.0", "gmodule-2.0", "gobject-2.0", "gthread-2.0", "glib-2.0"]
         if self.settings.os == "Linux":
             self.cpp_info.libs.append("pthread")
+        if self.settings.os == "Windows":
+            self.cpp_info.libs.append("ws2_32")
         if self.settings.os != "Linux":
             self.cpp_info.libs.append("intl")
         self.cpp_info.includedirs.append(os.path.join('include', 'glib-2.0'))
