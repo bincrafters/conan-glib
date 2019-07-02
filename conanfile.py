@@ -94,6 +94,14 @@ class GLibConan(ConanFile):
                          os.path.join(self._source_subfolder, "gobject", "meson.build"),
                          os.path.join(self._source_subfolder, "gio", "meson.build")]:
             tools.replace_in_file(filename, "subdir('tests')", "#subdir('tests')")
+        tools.replace_in_file(os.path.join(self._source_subfolder, "glib", "glibconfig.h.in"),
+                              "#mesondefine GLIB_STATIC_COMPILATION",
+                              "#mesondefine GLIB_STATIC_COMPILATION\n"
+                              "#mesondefine G_INTL_STATIC_COMPILATION")
+        tools.replace_in_file(os.path.join(self._source_subfolder, "meson.build"),
+                              "glibconfig_conf.set('GLIB_STATIC_COMPILATION', '1')",
+                              "glibconfig_conf.set('GLIB_STATIC_COMPILATION', '1')\n"
+                              "    glibconfig_conf.set('G_INTL_STATIC_COMPILATION', '1')")
         with tools.environment_append({"PKG_CONFIG_PATH": [self.source_folder]}):
             meson = self._configure_meson()
             meson.build()
