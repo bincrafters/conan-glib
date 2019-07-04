@@ -1,0 +1,107 @@
+From 25c72889a96d1cab0862f939df608248ab0cd0ed Mon Sep 17 00:00:00 2001
+From: Erik van Pienbroek <epienbro@fedoraproject.org>
+Date: Tue, 16 Apr 2013 11:42:11 +0200
+Subject: [PATCH 2/2] win32: Prefer the use of constructors over DllMain
+
+This prevents having to depend on DllMain in static libraries
+
+Constructors are available in both the GCC build (GCC 2.7 and later)
+and the MSVC build (MSVC 2008 and later using _Pragma, earlier
+versions using #pragma)
+---
+ glib/glib-init.c | 28 ++++++++++++++++++----------
+ gobject/gtype.c  |  6 ++++--
+ 2 files changed, 22 insertions(+), 12 deletions(-)
+
+diff --git a/glib/glib-init.c b/glib/glib-init.c
+index 6cb4e4a0d..444288fc3 100644
+--- a/glib/glib-init.c
++++ b/glib/glib-init.c
+@@ -272,12 +272,14 @@ glib_init (void)
+ 
+ #if defined (G_OS_WIN32)
+ 
++HMODULE glib_dll = NULL;
++
++#if defined (DLL_EXPORT)
++
+ BOOL WINAPI DllMain (HINSTANCE hinstDLL,
+                      DWORD     fdwReason,
+                      LPVOID    lpvReserved);
+ 
+-HMODULE glib_dll;
+-
+ BOOL WINAPI
+ DllMain (HINSTANCE hinstDLL,
+          DWORD     fdwReason,
+@@ -287,13 +289,6 @@ DllMain (HINSTANCE hinstDLL,
+     {
+     case DLL_PROCESS_ATTACH:
+       glib_dll = hinstDLL;
+-      g_clock_win32_init ();
+-#ifdef THREADS_WIN32
+-      g_thread_win32_init ();
+-#endif
+-      glib_init ();
+-      /* must go after glib_init */
+-      g_console_win32_init ();
+       break;
+ 
+     case DLL_THREAD_DETACH:
+@@ -317,7 +312,10 @@ DllMain (HINSTANCE hinstDLL,
+   return TRUE;
+ }
+ 
+-#elif defined (G_HAS_CONSTRUCTORS)
++#endif /* defined (DLL_EXPORT) */
++#endif /* defined (G_OS_WIN32) */
++
++#if defined (G_HAS_CONSTRUCTORS)
+ 
+ #ifdef G_DEFINE_CONSTRUCTOR_NEEDS_PRAGMA
+ #pragma G_DEFINE_CONSTRUCTOR_PRAGMA_ARGS(glib_init_ctor)
+@@ -327,7 +325,17 @@ G_DEFINE_CONSTRUCTOR(glib_init_ctor)
+ static void
+ glib_init_ctor (void)
+ {
++#if defined (G_OS_WIN32)
++  g_clock_win32_init ();
++#ifdef THREADS_WIN32
++  g_thread_win32_init ();
++#endif /* defined (THREADS_WIN32) */
++#endif /* defined (G_OS_WIN32) */
+   glib_init ();
++#if defined (G_OS_WIN32)
++  /* must go after glib_init */
++  g_console_win32_init ();
++#endif /* defined (G_OS_WIN32) */
+ }
+ 
+ #else
+diff --git a/gobject/gtype.c b/gobject/gtype.c
+index 1acc0a075..49ae1d795 100644
+--- a/gobject/gtype.c
++++ b/gobject/gtype.c
+@@ -4451,7 +4451,7 @@ gobject_init (void)
+   _g_signal_init ();
+ }
+ 
+-#if defined (G_OS_WIN32)
++#if defined (G_OS_WIN32) && defined (DLL_EXPORT)
+ 
+ BOOL WINAPI DllMain (HINSTANCE hinstDLL,
+                      DWORD     fdwReason,
+@@ -4476,7 +4476,9 @@ DllMain (HINSTANCE hinstDLL,
+   return TRUE;
+ }
+ 
+-#elif defined (G_HAS_CONSTRUCTORS)
++#endif
++
++#if defined (G_HAS_CONSTRUCTORS)
+ #ifdef G_DEFINE_CONSTRUCTOR_NEEDS_PRAGMA
+ #pragma G_DEFINE_CONSTRUCTOR_PRAGMA_ARGS(gobject_init_ctor)
+ #endif
+-- 
+2.21.0
+
