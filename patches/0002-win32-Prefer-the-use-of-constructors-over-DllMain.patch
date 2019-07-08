@@ -1,4 +1,4 @@
-From 650da68ef7017dc4d6a135ac53f0f57024005d6f Mon Sep 17 00:00:00 2001
+From 8e8e82a7696d30a3115ddad2d935ce8a7af7079a Mon Sep 17 00:00:00 2001
 From: Erik van Pienbroek <epienbro@fedoraproject.org>
 Date: Tue, 16 Apr 2013 11:42:11 +0200
 Subject: [PATCH 2/2] win32: Prefer the use of constructors over DllMain
@@ -142,7 +142,7 @@ index 1ad5ece80..fc3808815 100644
  
  void
 diff --git a/gobject/gtype.c b/gobject/gtype.c
-index 1acc0a075..53c130c44 100644
+index 1acc0a075..61f671fba 100644
 --- a/gobject/gtype.c
 +++ b/gobject/gtype.c
 @@ -32,6 +32,7 @@
@@ -162,9 +162,9 @@ index 1acc0a075..53c130c44 100644
 +   * guarantee the order in which constructors are called, but it's fine to call
 +   * this multiple times since it'll be a no-op. Since gobject-2.0 needs
 +   * glib-2.0, this will always be de-inited correctly. */
-+#if defined (G_OS_WIN32) && defined (THREADS_WIN32)
++#if defined (G_OS_WIN32) && defined (THREADS_WIN32) && !defined(DLL_EXPORT)
 +  g_thread_win32_init ();
-+#endif /* G_OS_WIN32 && THREADS_WIN32 */
++#endif /* G_OS_WIN32 && THREADS_WIN32 && !DLL_EXPORT */
 +
    /* Ensure GLib is initialized first, see
     * https://bugzilla.gnome.org/show_bug.cgi?id=756139
