@@ -1,4 +1,4 @@
-From 44a5d3d346b427be11e1613e753e240221c8c6e2 Mon Sep 17 00:00:00 2001
+From 650da68ef7017dc4d6a135ac53f0f57024005d6f Mon Sep 17 00:00:00 2001
 From: Erik van Pienbroek <epienbro@fedoraproject.org>
 Date: Tue, 16 Apr 2013 11:42:11 +0200
 Subject: [PATCH 2/2] win32: Prefer the use of constructors over DllMain
@@ -15,7 +15,7 @@ versions using #pragma)
  3 files changed, 56 insertions(+), 34 deletions(-)
 
 diff --git a/glib/glib-init.c b/glib/glib-init.c
-index 6cb4e4a0d..c57f16117 100644
+index 6cb4e4a0d..7fdb42947 100644
 --- a/glib/glib-init.c
 +++ b/glib/glib-init.c
 @@ -272,52 +272,30 @@ glib_init (void)
@@ -23,8 +23,8 @@ index 6cb4e4a0d..c57f16117 100644
  #if defined (G_OS_WIN32)
  
 +/* DLLMain should only be defined for DLLs on Windows */
-+
 +HMODULE glib_dll = NULL;
++
 +#if defined (DLL_EXPORT)
 +
  BOOL WINAPI DllMain (HINSTANCE hinstDLL,
@@ -142,7 +142,7 @@ index 1ad5ece80..fc3808815 100644
  
  void
 diff --git a/gobject/gtype.c b/gobject/gtype.c
-index 1acc0a075..72d583fdd 100644
+index 1acc0a075..53c130c44 100644
 --- a/gobject/gtype.c
 +++ b/gobject/gtype.c
 @@ -32,6 +32,7 @@
@@ -153,9 +153,9 @@ index 1acc0a075..72d583fdd 100644
  #include "gconstructor.h"
  
  #ifdef G_OS_WIN32
-@@ -4371,6 +4372,15 @@ gobject_init (void)
- 
-   G_WRITE_LOCK (&type_rw_lock);
+@@ -4364,6 +4365,15 @@ gobject_init (void)
+   TypeNode *node;
+   GType type;
  
 +  /* In addition to glib-init.c, also init win32-specific threading/locking
 +   * primitives right before we first make use of them. gconstructor.h does not
@@ -166,9 +166,9 @@ index 1acc0a075..72d583fdd 100644
 +  g_thread_win32_init ();
 +#endif /* G_OS_WIN32 && THREADS_WIN32 */
 +
-   /* setup GObject library wide debugging flags */
-   env_string = g_getenv ("GOBJECT_DEBUG");
-   if (env_string != NULL)
+   /* Ensure GLib is initialized first, see
+    * https://bugzilla.gnome.org/show_bug.cgi?id=756139
+    */
 @@ -4451,7 +4461,7 @@ gobject_init (void)
    _g_signal_init ();
  }
