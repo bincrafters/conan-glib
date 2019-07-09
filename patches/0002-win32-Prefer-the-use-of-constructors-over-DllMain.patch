@@ -1,4 +1,4 @@
-From 25c72889a96d1cab0862f939df608248ab0cd0ed Mon Sep 17 00:00:00 2001
+From 8e8e82a7696d30a3115ddad2d935ce8a7af7079a Mon Sep 17 00:00:00 2001
 From: Erik van Pienbroek <epienbro@fedoraproject.org>
 Date: Tue, 16 Apr 2013 11:42:11 +0200
 Subject: [PATCH 2/2] win32: Prefer the use of constructors over DllMain
@@ -9,18 +9,20 @@ Constructors are available in both the GCC build (GCC 2.7 and later)
 and the MSVC build (MSVC 2008 and later using _Pragma, earlier
 versions using #pragma)
 ---
- glib/glib-init.c | 28 ++++++++++++++++++----------
- gobject/gtype.c  |  6 ++++--
- 2 files changed, 22 insertions(+), 12 deletions(-)
+ glib/glib-init.c     | 67 +++++++++++++++++++++++---------------------
+ glib/gthread-win32.c |  7 +++++
+ gobject/gtype.c      | 16 +++++++++--
+ 3 files changed, 56 insertions(+), 34 deletions(-)
 
 diff --git a/glib/glib-init.c b/glib/glib-init.c
-index 6cb4e4a0d..444288fc3 100644
+index 6cb4e4a0d..7fdb42947 100644
 --- a/glib/glib-init.c
 +++ b/glib/glib-init.c
-@@ -272,12 +272,14 @@ glib_init (void)
+@@ -272,52 +272,30 @@ glib_init (void)
  
  #if defined (G_OS_WIN32)
  
++/* DLLMain should only be defined for DLLs on Windows */
 +HMODULE glib_dll = NULL;
 +
 +#if defined (DLL_EXPORT)
@@ -34,9 +36,12 @@ index 6cb4e4a0d..444288fc3 100644
  BOOL WINAPI
  DllMain (HINSTANCE hinstDLL,
           DWORD     fdwReason,
-@@ -287,13 +289,6 @@ DllMain (HINSTANCE hinstDLL,
-     {
-     case DLL_PROCESS_ATTACH:
+          LPVOID    lpvReserved)
+ {
+-  switch (fdwReason)
+-    {
+-    case DLL_PROCESS_ATTACH:
++    if (fdwReason == DLL_PROCESS_ATTACH)
        glib_dll = hinstDLL;
 -      g_clock_win32_init ();
 -#ifdef THREADS_WIN32
@@ -45,10 +50,26 @@ index 6cb4e4a0d..444288fc3 100644
 -      glib_init ();
 -      /* must go after glib_init */
 -      g_console_win32_init ();
-       break;
+-      break;
+-
+-    case DLL_THREAD_DETACH:
+-#ifdef THREADS_WIN32
+-      g_thread_win32_thread_detach ();
+-#endif
+-      break;
+-
+-    case DLL_PROCESS_DETACH:
+-#ifdef THREADS_WIN32
+-      if (lpvReserved == NULL)
+-        g_thread_win32_process_detach ();
+-#endif
+-      break;
+-
+-    default:
+-      /* do nothing */
+-      ;
+-    }
  
-     case DLL_THREAD_DETACH:
-@@ -317,7 +312,10 @@ DllMain (HINSTANCE hinstDLL,
    return TRUE;
  }
  
@@ -60,7 +81,7 @@ index 6cb4e4a0d..444288fc3 100644
  
  #ifdef G_DEFINE_CONSTRUCTOR_NEEDS_PRAGMA
  #pragma G_DEFINE_CONSTRUCTOR_PRAGMA_ARGS(glib_init_ctor)
-@@ -327,7 +325,17 @@ G_DEFINE_CONSTRUCTOR(glib_init_ctor)
+@@ -327,9 +305,34 @@ G_DEFINE_CONSTRUCTOR(glib_init_ctor)
  static void
  glib_init_ctor (void)
  {
@@ -77,12 +98,78 @@ index 6cb4e4a0d..444288fc3 100644
 +#endif /* defined (G_OS_WIN32) */
  }
  
++#ifdef G_DEFINE_DESTRUCTOR_NEEDS_PRAGMA
++#pragma G_DEFINE_DESTRUCTOR_PRAGMA_ARGS(glib_deinit_ctor)
++#endif
++G_DEFINE_DESTRUCTOR(glib_deinit_ctor)
++
++static void
++glib_deinit_ctor (void)
++{
++#if defined (G_OS_WIN32) && defined (THREADS_WIN32)
++  g_thread_win32_thread_detach ();
++#endif /* G_OS_WIN32 && THREADS_WIN32 */
++}
++
++
++
  #else
+ # error Your platform/compiler is missing constructor support
+ #endif
+diff --git a/glib/gthread-win32.c b/glib/gthread-win32.c
+index 1ad5ece80..fc3808815 100644
+--- a/glib/gthread-win32.c
++++ b/glib/gthread-win32.c
+@@ -536,6 +536,12 @@ g_system_thread_set_name (const gchar *name)
+ void
+ g_thread_win32_init (void)
+ {
++  static gboolean threads_inited;
++
++  if (threads_inited)
++    /* Already inited */
++    return;
++
+   InitializeCriticalSection (&g_private_lock);
+ 
+ #ifndef _MSC_VER
+@@ -545,6 +551,7 @@ g_thread_win32_init (void)
+       /* This is bad, but what can we do? */
+     }
+ #endif
++  threads_inited = TRUE;
+ }
+ 
+ void
 diff --git a/gobject/gtype.c b/gobject/gtype.c
-index 1acc0a075..49ae1d795 100644
+index 1acc0a075..61f671fba 100644
 --- a/gobject/gtype.c
 +++ b/gobject/gtype.c
-@@ -4451,7 +4451,7 @@ gobject_init (void)
+@@ -32,6 +32,7 @@
+ #include "gobject_trace.h"
+ 
+ #include "glib-private.h"
++#include "glib-init.h"
+ #include "gconstructor.h"
+ 
+ #ifdef G_OS_WIN32
+@@ -4364,6 +4365,15 @@ gobject_init (void)
+   TypeNode *node;
+   GType type;
+ 
++  /* In addition to glib-init.c, also init win32-specific threading/locking
++   * primitives right before we first make use of them. gconstructor.h does not
++   * guarantee the order in which constructors are called, but it's fine to call
++   * this multiple times since it'll be a no-op. Since gobject-2.0 needs
++   * glib-2.0, this will always be de-inited correctly. */
++#if defined (G_OS_WIN32) && defined (THREADS_WIN32) && !defined(DLL_EXPORT)
++  g_thread_win32_init ();
++#endif /* G_OS_WIN32 && THREADS_WIN32 && !DLL_EXPORT */
++
+   /* Ensure GLib is initialized first, see
+    * https://bugzilla.gnome.org/show_bug.cgi?id=756139
+    */
+@@ -4451,7 +4461,7 @@ gobject_init (void)
    _g_signal_init ();
  }
  
@@ -91,7 +178,7 @@ index 1acc0a075..49ae1d795 100644
  
  BOOL WINAPI DllMain (HINSTANCE hinstDLL,
                       DWORD     fdwReason,
-@@ -4476,7 +4476,9 @@ DllMain (HINSTANCE hinstDLL,
+@@ -4476,7 +4486,9 @@ DllMain (HINSTANCE hinstDLL,
    return TRUE;
  }
  
