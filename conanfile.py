@@ -11,6 +11,7 @@ class GLibConan(ConanFile):
     name = "glib"
     version = "2.58.3"
     description = "GLib provides the core application building blocks for libraries and applications written in C"
+    topics = ("conan", "glib", "gobject", "gio", "gmodule")
     url = "https://github.com/bincrafters/conan-glib"
     homepage = "https://github.com/GNOME/glib"
     author = "BinCrafters <bincrafters@gmail.com>"
@@ -59,7 +60,8 @@ class GLibConan(ConanFile):
                 self.requires.add("libselinux/2.8@bincrafters/stable")
 
     def source(self):
-        tools.get("{0}/archive/{1}.tar.gz".format(self.homepage, self.version))
+        tools.get("{0}/archive/{1}.tar.gz".format(self.homepage, self.version),
+                  sha256="7d12a34661dbe47702dba147b25edd60de0da2c21323e7d252eba0d5bff01944")
         extracted_dir = self.name + "-" + self.version
         os.rename(extracted_dir, self._source_subfolder)
 
