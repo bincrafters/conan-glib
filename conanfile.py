@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from conans import ConanFile, tools, Meson
+from conans import ConanFile, tools, Meson, VisualStudioBuildEnvironment
 import os
 import shutil
 import glob
@@ -38,6 +38,10 @@ class GLibConan(ConanFile):
     requires = "zlib/1.2.11@conan/stable", "libffi/3.2.1@bincrafters/stable"
     exports_sources = ["patches/*.patch"]
 
+    @property
+    def _is_msvc(self):
+        return self.settings.compiler == "Visual Studio"
+
     def configure(self):
         del self.settings.compiler.libcxx
 
@@ -58,6 +62,9 @@ class GLibConan(ConanFile):
                 self.requires.add("libmount/2.33.1@bincrafters/stable")
             if self.options.with_selinux:
                 self.requires.add("libselinux/2.8@bincrafters/stable")
+        else:
+            # for Linux, gettext is provided by libc
+            self.requires.add("gettext/0.20.1@bincrafters/stable")
 
     def source(self):
         tools.get("{0}/archive/{1}.tar.gz".format(self.homepage, self.version),
@@ -96,15 +103,11 @@ class GLibConan(ConanFile):
                          os.path.join(self._source_subfolder, "gobject", "meson.build"),
                          os.path.join(self._source_subfolder, "gio", "meson.build")]:
             tools.replace_in_file(filename, "subdir('tests')", "#subdir('tests')")
-        tools.replace_in_file(os.path.join(self._source_subfolder, "glib", "glibconfig.h.in"),
-                              "#mesondefine GLIB_STATIC_COMPILATION",
-                              "#mesondefine GLIB_STATIC_COMPILATION\n"
-                              "#mesondefine G_INTL_STATIC_COMPILATION")
+        # allow to find gettext
         tools.replace_in_file(os.path.join(self._source_subfolder, "meson.build"),
-                              "glibconfig_conf.set('GLIB_STATIC_COMPILATION', '1')",
-                              "glibconfig_conf.set('GLIB_STATIC_COMPILATION', '1')\n"
-                              "    glibconfig_conf.set('G_INTL_STATIC_COMPILATION', '1')")
-        with tools.environment_append({"PKG_CONFIG_PATH": [self.source_folder]}):
+                              "libintl = cc.find_library('intl', required : false)",
+                              "libintl = cc.find_library('gnuintl', required : false)")
+        with tools.environment_append(VisualStudioBuildEnvironment(self).vars) if self._is_msvc else tools.no_op():
             meson = self._configure_meson()
             meson.build()
 
@@ -118,7 +121,7 @@ class GLibConan(ConanFile):
 
     def package(self):
         self.copy(pattern="COPYING", dst="licenses", src=self._source_subfolder)
-        with tools.environment_append({"PKG_CONFIG_PATH": [self.source_folder]}):
+        with tools.environment_append(VisualStudioBuildEnvironment(self).vars) if self._is_msvc else tools.no_op():
             meson = self._configure_meson()
             meson.install()
             self._fix_library_names()
@@ -129,8 +132,6 @@ class GLibConan(ConanFile):
             self.cpp_info.libs.append("pthread")
         if self.settings.os == "Windows":
             self.cpp_info.libs.append("ws2_32")
-        if self.settings.os != "Linux":
-            self.cpp_info.libs.append("intl")
         self.cpp_info.includedirs.append(os.path.join('include', 'glib-2.0'))
         self.cpp_info.includedirs.append(os.path.join('lib', 'glib-2.0', 'include'))
         self.env_info.PATH.append(os.path.join(self.package_folder, "bin"))
