@@ -41,6 +41,9 @@ class GLibConan(ConanFile):
     @property
     def _is_msvc(self):
         return self.settings.compiler == "Visual Studio"
+    
+    def _is_mingw(self):
+        return self.settings.os == "Windows" and self.settings.compiler == "gcc"
 
     def configure(self):
         del self.settings.compiler.libcxx
@@ -62,7 +65,7 @@ class GLibConan(ConanFile):
                 self.requires.add("libmount/2.33.1@bincrafters/stable")
             if self.options.with_selinux:
                 self.requires.add("libselinux/2.8@bincrafters/stable")
-        else:
+        elif not self._is_mingw:
             # for Linux, gettext is provided by libc
             self.requires.add("gettext/0.20.1@bincrafters/stable")
 
@@ -103,10 +106,11 @@ class GLibConan(ConanFile):
                          os.path.join(self._source_subfolder, "gobject", "meson.build"),
                          os.path.join(self._source_subfolder, "gio", "meson.build")]:
             tools.replace_in_file(filename, "subdir('tests')", "#subdir('tests')")
-        # allow to find gettext
-        tools.replace_in_file(os.path.join(self._source_subfolder, "meson.build"),
-                              "libintl = cc.find_library('intl', required : false)",
-                              "libintl = cc.find_library('gnuintl', required : false)")
+        if not self._is_mingw:
+            # allow to find gettext
+            tools.replace_in_file(os.path.join(self._source_subfolder, "meson.build"),
+                                  "libintl = cc.find_library('intl', required : false)",
+                                  "libintl = cc.find_library('gnuintl', required : false)")
         with tools.environment_append(VisualStudioBuildEnvironment(self).vars) if self._is_msvc else tools.no_op():
             meson = self._configure_meson()
             meson.build()
