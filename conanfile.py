@@ -35,7 +35,7 @@ class GLibConan(ConanFile):
     autotools = None
     short_paths = True
     generators = "pkg_config"
-    requires = "zlib/1.2.11@conan/stable", "libffi/3.2.1@bincrafters/stable"
+    requires = "zlib/1.2.11", "libffi/3.2.1"
     exports_sources = ["patches/*.patch"]
 
     @property
@@ -55,7 +55,7 @@ class GLibConan(ConanFile):
 
     def requirements(self):
         if self.options.with_pcre:
-            self.requires.add("pcre/8.41@bincrafters/stable")
+            self.requires.add("pcre/8.41")
         if self.options.with_elf:
             self.requires.add("libelf/0.8.13@bincrafters/stable")
         if self.settings.os == "Linux":
