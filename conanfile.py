@@ -14,7 +14,7 @@ class GLibConan(ConanFile):
     topics = ("conan", "glib", "gobject", "gio", "gmodule")
     url = "https://github.com/bincrafters/conan-glib"
     homepage = "https://github.com/GNOME/glib"
-    author = "BinCrafters <bincrafters@gmail.com>"
+    author = "Bincrafters <bincrafters@gmail.com>"
     license = "LGPL-2.1"
     exports = ["LICENSE.md"]
     settings = "os", "arch", "compiler", "build_type"
