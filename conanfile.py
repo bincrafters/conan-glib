@@ -33,7 +33,7 @@ class GLibConan(ConanFile):
     autotools = None
     short_paths = True
     generators = "pkg_config"
-    requires = "zlib/1.2.11@conan/stable", "libffi/3.2.1@bincrafters/stable"
+    requires = "zlib/1.2.11", "libffi/3.2.1@bincrafters/stable"
 
     def configure(self):
         del self.settings.compiler.libcxx
