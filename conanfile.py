@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from conans import ConanFile, tools, Meson, VisualStudioBuildEnvironment
 import os
 import shutil
@@ -57,10 +54,10 @@ class GLibConan(ConanFile):
         if self.options.with_pcre:
             self.requires.add("pcre/8.41")
         if self.options.with_elf:
-            self.requires.add("libelf/0.8.13@bincrafters/stable")
+            self.requires.add("libelf/0.8.13")
         if self.settings.os == "Linux":
             if self.options.with_mount:
-                self.requires.add("libmount/2.33.1@bincrafters/stable")
+                self.requires.add("libmount/2.33.1")
             if self.options.with_selinux:
                 self.requires.add("libselinux/2.8@bincrafters/stable")
         else:
