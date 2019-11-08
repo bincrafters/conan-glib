@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from conans import ConanFile, tools, Meson
 import os
 import shutil
@@ -12,7 +9,6 @@ class GLibConan(ConanFile):
     description = "GLib provides the core application building blocks for libraries and applications written in C"
     url = "https://github.com/bincrafters/conan-glib"
     homepage = "https://github.com/GNOME/glib"
-    author = "BinCrafters <bincrafters@gmail.com>"
     license = "LGPL-2.1"
     exports = ["LICENSE.md"]
     settings = "os", "arch", "compiler", "build_type"
@@ -33,7 +29,7 @@ class GLibConan(ConanFile):
     autotools = None
     short_paths = True
     generators = "pkg_config"
-    requires = "zlib/1.2.11", "libffi/3.2.1@bincrafters/stable"
+    requires = "zlib/1.2.11", "libffi/3.2.1"
 
     def configure(self):
         del self.settings.compiler.libcxx
@@ -48,12 +44,12 @@ class GLibConan(ConanFile):
 
     def requirements(self):
         if self.options.with_pcre:
-            self.requires.add("pcre/8.41@bincrafters/stable")
+            self.requires.add("pcre/8.41")
         if self.options.with_elf:
-            self.requires.add("libelf/0.8.13@bincrafters/stable")
+            self.requires.add("libelf/0.8.13")
         if self.settings.os == "Linux":
             if self.options.with_mount:
-                self.requires.add("libmount/2.33.1@bincrafters/stable")
+                self.requires.add("libmount/2.33.1")
             if self.options.with_selinux:
                 self.requires.add("libselinux/2.8@bincrafters/stable")
 
@@ -64,7 +60,7 @@ class GLibConan(ConanFile):
 
     def build_requirements(self):
         if not tools.which("meson"):
-            self.build_requires("meson_installer/0.49.0@bincrafters/stable")
+            self.build_requires("meson/0.52.0")
         if not tools.which("pkg-config"):
             self.build_requires("pkg-config_installer/0.29.2@bincrafters/stable")
 
