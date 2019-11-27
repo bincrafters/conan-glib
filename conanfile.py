@@ -81,6 +81,11 @@ class GLibConan(ConanFile):
         defs = dict()
         if tools.is_apple_os(self.settings.os):
             defs["iconv"] = "native"  # https://gitlab.gnome.org/GNOME/glib/issues/1557
+        if self.settings.os == "Linux":
+            defs["selinux"] = self.options.with_selinux
+            defs["libmount"] = self.options.with_mount
+        defs["internal_pcre"] = not self.options.with_pcre
+
         meson.configure(source_folder=self._source_subfolder,
                         build_folder=self._build_subfolder, defs=defs)
         return meson
