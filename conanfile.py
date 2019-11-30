@@ -140,4 +140,4 @@ class GLibConan(ConanFile):
         self.env_info.PATH.append(os.path.join(self.package_folder, "bin"))
         if self.settings.os == "Macos":
             self.cpp_info.libs.append("iconv")
-        self.cpp_info.frameworks.extend(['Foundation', 'CoreServices', 'CoreFoundation'])
+            self.cpp_info.frameworks.extend(['Foundation', 'CoreServices', 'CoreFoundation'])
