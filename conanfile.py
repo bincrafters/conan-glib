@@ -101,6 +101,8 @@ class GLibConan(ConanFile):
             shutil.move("libmount.pc", "mount.pc")
         if self.options.with_pcre:
             shutil.move("pcre.pc", "libpcre.pc")
+            shutil.move("bzip2.pc", "BZip2.pc")
+            shutil.move("zlib.pc", "ZLIB.pc")
         for filename in [os.path.join(self._source_subfolder, "meson.build"),
                          os.path.join(self._source_subfolder, "glib", "meson.build"),
                          os.path.join(self._source_subfolder, "gobject", "meson.build"),
