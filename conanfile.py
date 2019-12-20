@@ -96,8 +96,6 @@ class GLibConan(ConanFile):
         return meson
 
     def build(self):
-        if self.settings.os == "Linux" and self.options.with_mount:
-            shutil.move("libmount.pc", "mount.pc")
         if self.options.with_pcre:
             shutil.move("pcre.pc", "libpcre.pc")
         with tools.environment_append({"PKG_CONFIG_PATH": [self.source_folder]}):
