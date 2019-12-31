@@ -5,10 +5,10 @@ import shutil
 
 class GLibConan(ConanFile):
     name = "glib"
-    version = "2.60.3"
+    version = "2.62.4"
     description = "GLib provides the core application building blocks for libraries and applications written in C"
     url = "https://github.com/bincrafters/conan-glib"
-    homepage = "https://github.com/GNOME/glib"
+    homepage = "https://gitlab.gnome.org/GNOME/glib"
     license = "LGPL-2.1"
     exports = ["LICENSE.md"]
     settings = "os", "arch", "compiler", "build_type"
@@ -54,7 +54,7 @@ class GLibConan(ConanFile):
                 self.requires.add("libselinux/2.8@bincrafters/stable")
 
     def source(self):
-        tools.get("{0}/archive/{1}.tar.gz".format(self.homepage, self.version))
+        tools.get("{0}/-/archive/{1}/glib-{1}.tar.gz".format(self.homepage, self.version))
         extracted_dir = self.name + "-" + self.version
         os.rename(extracted_dir, self._source_subfolder)
 
