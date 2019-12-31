@@ -57,6 +57,9 @@ class GLibConan(ConanFile):
         tools.get("{0}/-/archive/{1}/glib-{1}.tar.gz".format(self.homepage, self.version))
         extracted_dir = self.name + "-" + self.version
         os.rename(extracted_dir, self._source_subfolder)
+        tools.replace_in_file(os.path.join(self._source_subfolder, 'meson.build'), \
+            'build_tests = not meson.is_cross_build() or (meson.is_cross_build() and meson.has_exe_wrapper())', \
+            'build_tests = false')
 
     def build_requirements(self):
         if not tools.which("meson"):
