@@ -71,7 +71,7 @@ class GLibConan(ConanFile):
 
     def build_requirements(self):
         if not tools.which("meson"):
-            self.build_requires("meson_installer/0.50.0@bincrafters/stable")
+            self.build_requires("meson/0.53.0")
         if not tools.which("pkg-config"):
             self.build_requires("pkg-config_installer/0.29.2@bincrafters/stable")
 
