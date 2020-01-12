@@ -98,8 +98,6 @@ class GLibConan(ConanFile):
 
     def build(self):
         self._apply_patches()
-        if self.options.with_pcre:
-            shutil.move("pcre.pc", "libpcre.pc")
         for filename in [os.path.join(self._source_subfolder, "meson.build"),
                          os.path.join(self._source_subfolder, "glib", "meson.build"),
                          os.path.join(self._source_subfolder, "gobject", "meson.build"),
