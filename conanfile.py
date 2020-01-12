@@ -6,11 +6,10 @@ import glob
 
 class GLibConan(ConanFile):
     name = "glib"
-    version = "2.62.4"
     description = "GLib provides the core application building blocks for libraries and applications written in C"
     topics = ("conan", "glib", "gobject", "gio", "gmodule")
     url = "https://github.com/bincrafters/conan-glib"
-    homepage = "https://github.com/GNOME/glib"
+    homepage = "https://gitlab.gnome.org/GNOME/glib"
     license = "LGPL-2.1"
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False],
@@ -31,7 +30,6 @@ class GLibConan(ConanFile):
     short_paths = True
     generators = "pkg_config"
     requires = "zlib/1.2.11", "libffi/3.2.1"
-    exports_sources = ["patches/*.patch"]
 
     @property
     def _is_msvc(self):
@@ -63,10 +61,10 @@ class GLibConan(ConanFile):
             self.requires.add("gettext/0.20.1@bincrafters/stable")
 
     def source(self):
-        tools.get("{0}/archive/{1}.tar.gz".format(self.homepage, self.version),
-                  sha256="7d12a34661dbe47702dba147b25edd60de0da2c21323e7d252eba0d5bff01944")
+        tools.get(**self.conan_data["sources"][self.version])
         extracted_dir = self.name + "-" + self.version
         os.rename(extracted_dir, self._source_subfolder)
+
         tools.replace_in_file(os.path.join(self._source_subfolder, 'meson.build'), \
             'build_tests = not meson.is_cross_build() or (meson.is_cross_build() and meson.has_exe_wrapper())', \
             'build_tests = false')
@@ -91,13 +89,7 @@ class GLibConan(ConanFile):
                         build_folder=self._build_subfolder, defs=defs)
         return meson
 
-    def _apply_patches(self):
-        for filename in sorted(glob.glob("patches/*.patch")):
-            self.output.info('applying patch "%s"' % filename)
-            tools.patch(base_path=self._source_subfolder, patch_file=filename)
-
     def build(self):
-        self._apply_patches()
         for filename in [os.path.join(self._source_subfolder, "meson.build"),
                          os.path.join(self._source_subfolder, "glib", "meson.build"),
                          os.path.join(self._source_subfolder, "gobject", "meson.build"),
