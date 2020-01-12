@@ -12,7 +12,6 @@ class GLibConan(ConanFile):
     url = "https://github.com/bincrafters/conan-glib"
     homepage = "https://github.com/GNOME/glib"
     license = "LGPL-2.1"
-    exports = ["LICENSE.md"]
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False],
                "fPIC": [True, False],
@@ -58,7 +57,7 @@ class GLibConan(ConanFile):
             if self.options.with_mount:
                 self.requires.add("libmount/2.33.1")
             if self.options.with_selinux:
-                self.requires.add("libselinux/2.8@bincrafters/stable")
+                self.requires.add("libselinux/2.9@bincrafters/stable")
         else:
             # for Linux, gettext is provided by libc
             self.requires.add("gettext/0.20.1@bincrafters/stable")
