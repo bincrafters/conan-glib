@@ -46,6 +46,12 @@ class GLibConan(ConanFile):
             del self.options.with_mount
             del self.options.with_selinux
 
+    def build_requirements(self):
+        if not tools.which("meson"):
+            self.build_requires("meson/0.53.0")
+        if not tools.which("pkg-config"):
+            self.build_requires("pkg-config_installer/0.29.2@bincrafters/stable")
+
     def requirements(self):
         if self.options.with_pcre:
             self.requires.add("pcre/8.41")
@@ -60,6 +66,9 @@ class GLibConan(ConanFile):
             # for Linux, gettext is provided by libc
             self.requires.add("gettext/0.20.1@bincrafters/stable")
 
+        if tools.is_apple_os(self.settings.os):
+            self.requires.add("libiconv/1.15")
+
     def source(self):
         tools.get(**self.conan_data["sources"][self.version])
         extracted_dir = self.name + "-" + self.version
@@ -69,17 +78,11 @@ class GLibConan(ConanFile):
             'build_tests = not meson.is_cross_build() or (meson.is_cross_build() and meson.has_exe_wrapper())', \
             'build_tests = false')
 
-    def build_requirements(self):
-        if not tools.which("meson"):
-            self.build_requires("meson/0.53.0")
-        if not tools.which("pkg-config"):
-            self.build_requires("pkg-config_installer/0.29.2@bincrafters/stable")
-
     def _configure_meson(self):
         meson = Meson(self)
         defs = dict()
         if tools.is_apple_os(self.settings.os):
-            defs["iconv"] = "native"  # https://gitlab.gnome.org/GNOME/glib/issues/1557
+            defs["iconv"] = "external"  # https://gitlab.gnome.org/GNOME/glib/issues/1557
         if self.settings.os == "Linux":
             defs["selinux"] = "enabled" if self.options.with_selinux else "disabled"
             defs["libmount"] = self.options.with_mount
