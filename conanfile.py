@@ -1,14 +1,16 @@
-from conans import ConanFile, tools, Meson
+from conans import ConanFile, tools, Meson, VisualStudioBuildEnvironment
 import os
 import shutil
+import glob
 
 
 class GLibConan(ConanFile):
     name = "glib"
     version = "2.62.4"
     description = "GLib provides the core application building blocks for libraries and applications written in C"
+    topics = ("conan", "glib", "gobject", "gio", "gmodule")
     url = "https://github.com/bincrafters/conan-glib"
-    homepage = "https://gitlab.gnome.org/GNOME/glib"
+    homepage = "https://github.com/GNOME/glib"
     license = "LGPL-2.1"
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False],
@@ -29,6 +31,11 @@ class GLibConan(ConanFile):
     short_paths = True
     generators = "pkg_config"
     requires = "zlib/1.2.11", "libffi/3.2.1"
+    exports_sources = ["patches/*.patch"]
+
+    @property
+    def _is_msvc(self):
+        return self.settings.compiler == "Visual Studio"
 
     def configure(self):
         del self.settings.compiler.libcxx
@@ -51,9 +58,13 @@ class GLibConan(ConanFile):
                 self.requires.add("libmount/2.33.1")
             if self.options.with_selinux:
                 self.requires.add("libselinux/2.9@bincrafters/stable")
+        else:
+            # for Linux, gettext is provided by libc
+            self.requires.add("gettext/0.20.1@bincrafters/stable")
 
     def source(self):
-        tools.get("{0}/-/archive/{1}/glib-{1}.tar.gz".format(self.homepage, self.version))
+        tools.get("{0}/archive/{1}.tar.gz".format(self.homepage, self.version),
+                  sha256="7d12a34661dbe47702dba147b25edd60de0da2c21323e7d252eba0d5bff01944")
         extracted_dir = self.name + "-" + self.version
         os.rename(extracted_dir, self._source_subfolder)
         tools.replace_in_file(os.path.join(self._source_subfolder, 'meson.build'), \
@@ -62,7 +73,7 @@ class GLibConan(ConanFile):
 
     def build_requirements(self):
         if not tools.which("meson"):
-            self.build_requires("meson/0.52.0")
+            self.build_requires("meson/0.53.0")
         if not tools.which("pkg-config"):
             self.build_requires("pkg-config_installer/0.29.2@bincrafters/stable")
 
@@ -71,57 +82,61 @@ class GLibConan(ConanFile):
         defs = dict()
         if tools.is_apple_os(self.settings.os):
             defs["iconv"] = "native"  # https://gitlab.gnome.org/GNOME/glib/issues/1557
-        elif self.settings.os == "Linux":
-            defs["selinux"] = "enabled" if self.options.with_selinux else "disabled"
+        if self.settings.os == "Linux":
+            defs["selinux"] = self.options.with_selinux
             defs["libmount"] = self.options.with_mount
-            defs["libdir"] = "lib"
-        if str(self.settings.compiler) in ["gcc", "clang"]:
-            if self.settings.arch == "x86":
-                defs["c_args"] = "-m32"
-                defs["cpp_args"] = "-m32"
-                defs["c_link_args"] = "-m32"
-                defs["cpp_link_args"] = "-m32"
-            elif self.settings.arch == "x86_64":
-                defs["c_args"] = "-m64"
-                defs["cpp_args"] = "-m64"
-                defs["c_link_args"] = "-m64"
-                defs["cpp_link_args"] = "-m64"
-        elif self.settings.compiler == "Visual Studio":
-            if self.settings.arch == "x86":
-                defs["c_link_args"] = "-MACHINE:X86"
-                defs["cpp_link_args"] = "-MACHINE:X86"
-            elif self.settings.arch == "x86_64":
-                defs["c_link_args"] = "-MACHINE:X64"
-                defs["cpp_link_args"] = "-MACHINE:X64"
+        defs["internal_pcre"] = not self.options.with_pcre
+
         meson.configure(source_folder=self._source_subfolder,
                         build_folder=self._build_subfolder, defs=defs)
         return meson
 
+    def _apply_patches(self):
+        for filename in sorted(glob.glob("patches/*.patch")):
+            self.output.info('applying patch "%s"' % filename)
+            tools.patch(base_path=self._source_subfolder, patch_file=filename)
+
     def build(self):
+        self._apply_patches()
         if self.options.with_pcre:
             shutil.move("pcre.pc", "libpcre.pc")
-        with tools.environment_append({"PKG_CONFIG_PATH": [self.source_folder]}):
+        for filename in [os.path.join(self._source_subfolder, "meson.build"),
+                         os.path.join(self._source_subfolder, "glib", "meson.build"),
+                         os.path.join(self._source_subfolder, "gobject", "meson.build"),
+                         os.path.join(self._source_subfolder, "gio", "meson.build")]:
+            tools.replace_in_file(filename, "subdir('tests')", "#subdir('tests')")
+        # allow to find gettext
+        tools.replace_in_file(os.path.join(self._source_subfolder, "meson.build"),
+                              "libintl = cc.find_library('intl', required : false)",
+                              "libintl = cc.find_library('gnuintl', required : false)")
+        with tools.environment_append(VisualStudioBuildEnvironment(self).vars) if self._is_msvc else tools.no_op():
             meson = self._configure_meson()
             meson.build()
 
+    def _fix_library_names(self):
+        if self.settings.compiler == "Visual Studio":
+            with tools.chdir(os.path.join(self.package_folder, "lib")):
+                for filename_old in glob.glob("*.a"):
+                    filename_new = filename_old[3:-2] + ".lib"
+                    self.output.info("rename %s into %s" % (filename_old, filename_new))
+                    shutil.move(filename_old, filename_new)
+
     def package(self):
         self.copy(pattern="COPYING", dst="licenses", src=self._source_subfolder)
-        with tools.environment_append({"PKG_CONFIG_PATH": [self.source_folder]}):
+        with tools.environment_append(VisualStudioBuildEnvironment(self).vars) if self._is_msvc else tools.no_op():
             meson = self._configure_meson()
             meson.install()
+            self._fix_library_names()
 
     def package_info(self):
-        self.cpp_info.libs = tools.collect_libs(self)
+        self.cpp_info.libs = ["gio-2.0", "gmodule-2.0", "gobject-2.0", "gthread-2.0", "glib-2.0"]
         if self.settings.os == "Linux":
             self.cpp_info.libs.append("pthread")
-        elif self.settings.os == "Windows":
-            self.cpp_info.libs.append("ole32", "shell32")
+        if self.settings.os == "Windows":
+            self.cpp_info.libs.extend(["ws2_32", "ole32", "shell32", "user32", "advapi32"])
         self.cpp_info.includedirs.append(os.path.join('include', 'glib-2.0'))
         self.cpp_info.includedirs.append(os.path.join('lib', 'glib-2.0', 'include'))
         self.env_info.PATH.append(os.path.join(self.package_folder, "bin"))
         if self.settings.os == "Macos":
             self.cpp_info.libs.append("iconv")
-            frameworks = ['Foundation', 'CoreServices']
-            for framework in frameworks:
-                self.cpp_info.exelinkflags.append("-framework %s" % framework)
-            self.cpp_info.sharedlinkflags = self.cpp_info.exelinkflags
+            self.cpp_info.frameworks.extend(['Foundation', 'CoreServices', 'CoreFoundation'])
