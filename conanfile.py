@@ -48,11 +48,12 @@ class GLibConan(ConanFile):
     def configure(self):
         del self.settings.compiler.libcxx
         del self.settings.compiler.cppstd
+        if self.settings.os == "Windows":
+            self.options.shared = True
 
     def config_options(self):
         if self.settings.os == "Windows":
             del self.options.fPIC
-            del self.options.shared
         if self.settings.os != "Linux":
             del self.options.with_mount
             del self.options.with_selinux
