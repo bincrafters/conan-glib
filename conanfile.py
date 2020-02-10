@@ -114,13 +114,14 @@ class GLibConan(ConanFile):
         tools.replace_in_file(os.path.join(self._source_subfolder, "meson.build"),
                               "libintl = cc.find_library('intl', required : false)",
                               "libintl = cc.find_library('gnuintl', required : false)")
+        if self.settings.os != "Linux":
+            tools.replace_in_file(os.path.join(self._source_subfolder, 'meson.build'),
+                                "if cc.has_function('ngettext')",
+                                "if false #cc.has_function('ngettext')")
+                              
         with tools.environment_append(VisualStudioBuildEnvironment(self).vars) if self._is_msvc else tools.no_op():
             meson = self._configure_meson()
             meson.build()
-        if self.settings.os != "Linux":
-            tools.replace_in_file(os.path.join(self._build_subfolder, 'meson-private', 'glib-2.0.pc'),
-            'libpcre',
-            'gettext, libpcre')
 
     def _fix_library_names(self):
         if self.settings.compiler == "Visual Studio":
