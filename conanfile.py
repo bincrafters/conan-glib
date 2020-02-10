@@ -117,6 +117,10 @@ class GLibConan(ConanFile):
         with tools.environment_append(VisualStudioBuildEnvironment(self).vars) if self._is_msvc else tools.no_op():
             meson = self._configure_meson()
             meson.build()
+        if self.settings.os != "Linux":
+            tools.replace_in_file(os.path.join(self._build_subfolder, 'meson-private', 'glib-2.0.pc'),
+            'libpcre',
+            'gettext, libpcre')
 
     def _fix_library_names(self):
         if self.settings.compiler == "Visual Studio":
