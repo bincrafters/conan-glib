@@ -35,9 +35,19 @@ class GLibConan(ConanFile):
     def _is_msvc(self):
         return self.settings.compiler == "Visual Studio"
 
+    @property
+    def _meson_required(self):
+        from six import StringIO 
+        mybuf = StringIO()
+        if self.run("meson -v", output=mybuf, ignore_errors=True) != 0:
+            return True
+        return tools.Version(mybuf.getvalue()) < tools.Version('0.53.0')
+
     def configure(self):
         del self.settings.compiler.libcxx
         del self.settings.compiler.cppstd
+        if self.settings.os == "Windows":
+            self.options.shared = True
 
     def config_options(self):
         if self.settings.os == "Windows":
@@ -73,10 +83,15 @@ class GLibConan(ConanFile):
         tools.get(**self.conan_data["sources"][self.version])
         extracted_dir = self.name + "-" + self.version
         os.rename(extracted_dir, self._source_subfolder)
-
         tools.replace_in_file(os.path.join(self._source_subfolder, 'meson.build'), \
             'build_tests = not meson.is_cross_build() or (meson.is_cross_build() and meson.has_exe_wrapper())', \
             'build_tests = false')
+
+    def build_requirements(self):
+        if self._meson_required:
+            self.build_requires("meson/0.53.0")
+        if not tools.which("pkg-config"):
+            self.build_requires("pkg-config_installer/0.29.2@bincrafters/stable")
 
     def _configure_meson(self):
         meson = Meson(self)
@@ -102,6 +117,11 @@ class GLibConan(ConanFile):
         tools.replace_in_file(os.path.join(self._source_subfolder, "meson.build"),
                               "libintl = cc.find_library('intl', required : false)",
                               "libintl = cc.find_library('gnuintl', required : false)")
+        if self.settings.os != "Linux":
+            tools.replace_in_file(os.path.join(self._source_subfolder, 'meson.build'),
+                                "if cc.has_function('ngettext')",
+                                "if false #cc.has_function('ngettext')")
+                              
         with tools.environment_append(VisualStudioBuildEnvironment(self).vars) if self._is_msvc else tools.no_op():
             meson = self._configure_meson()
             meson.build()
@@ -124,12 +144,15 @@ class GLibConan(ConanFile):
     def package_info(self):
         self.cpp_info.libs = ["gio-2.0", "gmodule-2.0", "gobject-2.0", "gthread-2.0", "glib-2.0"]
         if self.settings.os == "Linux":
-            self.cpp_info.libs.append("pthread")
+            self.cpp_info.system_libs.append("pthread")
+            self.cpp_info.system_libs.append("resolv")
+            self.cpp_info.system_libs.append("dl")
         if self.settings.os == "Windows":
-            self.cpp_info.libs.extend(["ws2_32", "ole32", "shell32", "user32", "advapi32"])
+            self.cpp_info.system_libs.extend(["ws2_32", "ole32", "shell32", "user32", "advapi32"])
         self.cpp_info.includedirs.append(os.path.join('include', 'glib-2.0'))
         self.cpp_info.includedirs.append(os.path.join('lib', 'glib-2.0', 'include'))
         self.env_info.PATH.append(os.path.join(self.package_folder, "bin"))
         if self.settings.os == "Macos":
-            self.cpp_info.libs.append("iconv")
+            self.cpp_info.system_libs.append("iconv")
+            self.cpp_info.system_libs.append("resolv")
             self.cpp_info.frameworks.extend(['Foundation', 'CoreServices', 'CoreFoundation'])
