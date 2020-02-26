@@ -100,7 +100,7 @@ class GLibConan(ConanFile):
             defs["iconv"] = "external"  # https://gitlab.gnome.org/GNOME/glib/issues/1557
         if self.settings.os == "Linux":
             defs["selinux"] = "enabled" if self.options.with_selinux else "disabled"
-            defs["libmount"] = self.options.with_mount
+            defs["libmount"] = "enabled" if self.options.with_mount else "disabled"
         defs["internal_pcre"] = not self.options.with_pcre
 
         meson.configure(source_folder=self._source_subfolder,
