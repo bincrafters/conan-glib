@@ -18,7 +18,7 @@ class GLibConan(ConanFile):
                "with_elf": [True, False],
                "with_selinux": [True, False],
                "with_mount": [True, False]}
-    default_options = {"shared": False,
+    default_options = {"shared": True,
                        "fPIC": True,
                        "with_pcre": True,
                        "with_elf": True,
