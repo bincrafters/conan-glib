@@ -74,7 +74,7 @@ class GLibConan(ConanFile):
                 self.requires.add("libselinux/2.9@bincrafters/stable")
         else:
             # for Linux, gettext is provided by libc
-            self.requires.add("gettext/0.20.1@bincrafters/stable")
+            self.requires.add("libgettext/0.20.1")
 
         if tools.is_apple_os(self.settings.os):
             self.requires.add("libiconv/1.15")
