@@ -35,14 +35,6 @@ class GLibConan(ConanFile):
     def _is_msvc(self):
         return self.settings.compiler == "Visual Studio"
 
-    @property
-    def _meson_required(self):
-        from six import StringIO 
-        mybuf = StringIO()
-        if self.run("meson -v", output=mybuf, ignore_errors=True) != 0:
-            return True
-        return tools.Version(mybuf.getvalue()) < tools.Version('0.53.0')
-
     def configure(self):
         del self.settings.compiler.libcxx
         del self.settings.compiler.cppstd
@@ -57,8 +49,7 @@ class GLibConan(ConanFile):
             del self.options.with_selinux
 
     def build_requirements(self):
-        if not tools.which("meson"):
-            self.build_requires("meson/0.53.2")
+        self.build_requires("meson/0.53.2")
         if not tools.which("pkg-config"):
             self.build_requires("pkg-config_installer/0.29.2@bincrafters/stable")
 
@@ -86,12 +77,6 @@ class GLibConan(ConanFile):
         tools.replace_in_file(os.path.join(self._source_subfolder, 'meson.build'), \
             'build_tests = not meson.is_cross_build() or (meson.is_cross_build() and meson.has_exe_wrapper())', \
             'build_tests = false')
-
-    def build_requirements(self):
-        if self._meson_required:
-            self.build_requires("meson/0.53.2")
-        if not tools.which("pkg-config"):
-            self.build_requires("pkg-config_installer/0.29.2@bincrafters/stable")
 
     def _configure_meson(self):
         meson = Meson(self)
