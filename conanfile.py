@@ -58,7 +58,7 @@ class GLibConan(ConanFile):
 
     def build_requirements(self):
         if not tools.which("meson"):
-            self.build_requires("meson/0.53.0")
+            self.build_requires("meson/0.53.2")
         if not tools.which("pkg-config"):
             self.build_requires("pkg-config_installer/0.29.2@bincrafters/stable")
 
@@ -77,7 +77,7 @@ class GLibConan(ConanFile):
             self.requires.add("libgettext/0.20.1")
 
         if tools.is_apple_os(self.settings.os):
-            self.requires.add("libiconv/1.15")
+            self.requires.add("libiconv/1.16")
 
     def source(self):
         tools.get(**self.conan_data["sources"][self.version])
@@ -89,7 +89,7 @@ class GLibConan(ConanFile):
 
     def build_requirements(self):
         if self._meson_required:
-            self.build_requires("meson/0.53.0")
+            self.build_requires("meson/0.53.2")
         if not tools.which("pkg-config"):
             self.build_requires("pkg-config_installer/0.29.2@bincrafters/stable")
 
