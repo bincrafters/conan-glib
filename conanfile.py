@@ -50,7 +50,7 @@ class GLibConan(ConanFile):
 
     def build_requirements(self):
         self.build_requires("meson/0.54.0")
-        if not tools.which("pkg-config"):
+        if not tools.which("pkg-config") or self.settings.os == "Windows":
             self.build_requires("pkg-config_installer/0.29.2@bincrafters/stable")
 
     def requirements(self):
@@ -88,7 +88,7 @@ class GLibConan(ConanFile):
             defs["libmount"] = "enabled" if self.options.with_mount else "disabled"
         defs["internal_pcre"] = not self.options.with_pcre
 
-        meson.configure(source_folder=self._source_subfolder,
+        meson.configure(source_folder=self._source_subfolder, args=['--wrap-mode=nofallback'],
                         build_folder=self._build_subfolder, defs=defs)
         return meson
 
