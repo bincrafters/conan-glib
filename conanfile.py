@@ -77,6 +77,9 @@ class GLibConan(ConanFile):
         tools.replace_in_file(os.path.join(self._source_subfolder, 'meson.build'), \
             'build_tests = not meson.is_cross_build() or (meson.is_cross_build() and meson.has_exe_wrapper())', \
             'build_tests = false')
+        tools.replace_in_file(os.path.join(self._source_subfolder, 'meson.build'), \
+            "subdir('fuzzing')", \
+            "#subdir('fuzzing')")
 
     def _configure_meson(self):
         meson = Meson(self)
